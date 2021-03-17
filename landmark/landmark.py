@@ -5,7 +5,7 @@ from lime.lime_text import LimeTextExplainer
 
 
 
-class LIME_ER_Wrapper(object):
+class Landmark(object):
 
     def __init__(self, predict_method, dataset, exclude_attrs=['id', 'label'], split_expression=' ',
                  lprefix='left_', rprefix='right_', **argv, ):
@@ -38,10 +38,10 @@ class LIME_ER_Wrapper(object):
     def explain_instance(self, el, variable_side='left', fixed_side='right', add_before_perturbation=None,
                          add_after_perturbation=None, overlap=True, num_samples=500, **argv):
         """
-        Main method to wrap the explainer and generate an explanation. A sort of Facade for the explainer.
+        Main method to wrap the explainer and generate an landmark. A sort of Facade for the explainer.
 
         :param el: DataFrame containing the element to be explained.
-        :return: explanation DataFrame
+        :return: landmark DataFrame
         """
         variable_el = el.copy()
         for col in self.cols:
@@ -62,7 +62,7 @@ class LIME_ER_Wrapper(object):
     def prepare_element(self, variable_el, variable_side, fixed_side, add_before_perturbation, add_after_perturbation,
                         overlap):
         """
-        Compute the data and set parameters needed to perform the explanation.
+        Compute the data and set parameters needed to perform the landmark.
             Set fixed_side, fixed_data, mapper_variable.
             Call compute_tokens if needed
         """
@@ -102,13 +102,13 @@ class LIME_ER_Wrapper(object):
 
     def explanation_to_df(self, explanation, words, attribute_map, id):
         """
-        Generate the DataFrame of the explanation from the LIME explanation.
+        Generate the DataFrame of the landmark from the LIME landmark.
 
-        :param explanation: LIME explanation
-        :param words: words of the element subject of the explanation
+        :param explanation: LIME landmark
+        :param words: words of the element subject of the landmark
         :param attribute_map: attribute map to decode the attribute from a prefix
-        :param id: id of the element under explanation
-        :return: DataFrame containing the explanation
+        :param id: id of the element under landmark
+        :return: DataFrame containing the landmark
         """
         impacts_list = []
         dict_impact = {'id': id}
