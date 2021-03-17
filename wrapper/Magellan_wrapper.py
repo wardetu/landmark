@@ -5,7 +5,7 @@ import py_entitymatching as em
 from IPython.utils import io
 
 
-class MG_predictor(object):
+class Magellan_wrapper(object):
     def __init__(self, model, feature_table, exclude_attrs, lprefix='left_', rprefix='right_'):
         self.model = model
         self.exclude_attrs = exclude_attrs
