@@ -4,50 +4,21 @@ import pandas as pd
 from lime.lime_text import LimeTextExplainer
 
 
-class Mapper(object):
-    def __init__(self, columns, split_expression):
-        self.columns = columns
-        self.attr_map = {chr(ord('A') + colidx): col for colidx, col in enumerate(self.columns)}
-        self.arange = np.arange(100)
-        self.split_expression = split_expression
-
-    def map_word_to_attr_dict(self, text_to_restructure):
-        res = re.findall(r'(?P<attr>[A-Z]{1})(?P<pos>[0-9]{2})_(?P<word>[^' + self.split_expression + ']+)',
-                         text_to_restructure)
-        structured_row = {col: '' for col in self.columns}
-        for col_code, pos, word in res:
-            structured_row[self.attr_map[col_code]] += word + ' '
-        for col in self.columns:  # Remove last space
-            structured_row[col] = structured_row[col][:-1]
-        return structured_row
-
-    def map_word_to_attr(self, text_to_restructure):
-        return pd.DataFrame([self.map_word_to_attr_dict(text_to_restructure)])
-
-    def encode_attr(self, el):
-        return ' '.join(
-            [chr(ord('A') + colpos) + "{:02d}_".format(wordpos) + word for colpos, col in enumerate(self.columns) for
-             wordpos, word in enumerate(re.split(self.split_expression, str(el[col].values[0])))])
-
-    def encode_elements(self, elements):
-        word_dict = {}
-        res_list = []
-        for i in np.arange(elements.shape[0]):
-            el = elements.iloc[i]
-            word_dict.update(id=el.id)
-            for colpos, col in enumerate(self.columns):
-                word_dict.update(column=col)
-                for wordpos, word in enumerate(re.split(self.split_expression, str(el[col]))):
-                    word_dict.update(word=word, position=wordpos,
-                                     word_prefix=chr(ord('A') + colpos) + f"{wordpos:02d}_" + word)
-                    res_list.append(word_dict.copy())
-        return pd.DataFrame(res_list)
-
 
 class LIME_ER_Wrapper(object):
 
     def __init__(self, predict_method, dataset, exclude_attrs=['id', 'label'], split_expression=' ',
                  lprefix='left_', rprefix='right_', **argv, ):
+        """
+
+        :param predict_method: of the model to be explained
+        :param dataset: containing the elements that will be explained. Used to save the attribute structure.
+        :param exclude_attrs: attributes to be excluded from the explanations
+        :param split_expression: to divide tokens from string
+        :param lprefix: left prefix
+        :param rprefix: right prefix
+        :param argv: other optional parameters that will be passed to LIME
+        """
         self.splitter = re.compile(split_expression)
         self.split_expression = split_expression
         self.explainer = LimeTextExplainer(class_names=['NO match', 'MATCH'], split_expression=split_expression, **argv)
@@ -68,15 +39,9 @@ class LIME_ER_Wrapper(object):
                          add_after_perturbation=None, overlap=True, num_samples=500, **argv):
         """
         Main method to wrap the explainer and generate an explanation. A sort of Facade for the explainer.
-        :param el:
-        :param variable_side:
-        :param fixed_side:
-        :param add_before_perturbation:
-        :param add_after_perturbation:
-        :param overlap:
-        :param num_samples:
-        :param argv:
-        :return:
+
+        :param el: DataFrame containing the element to be explained.
+        :return: explanation DataFrame
         """
         variable_el = el.copy()
         for col in self.cols:
@@ -114,7 +79,7 @@ class LIME_ER_Wrapper(object):
             else:
                 fixed_cols, not_fixed_cols = self.right_cols, self.left_cols
             mapper_fixed = Mapper(fixed_cols, self.split_expression)
-            self.fixed_data = mapper_fixed.map_word_to_attr(mapper_fixed.encode_attr(
+            self.fixed_data = mapper_fixed.decode_words_to_attr(mapper_fixed.encode_attr(
                 variable_el[fixed_cols]))  # encode and decode data of fixed source to ensure the same format
             self.mapper_variable = Mapper(not_fixed_cols, self.split_expression)
 
@@ -136,6 +101,15 @@ class LIME_ER_Wrapper(object):
         return variable_data
 
     def explanation_to_df(self, explanation, words, attribute_map, id):
+        """
+        Generate the DataFrame of the explanation from the LIME explanation.
+
+        :param explanation: LIME explanation
+        :param words: words of the element subject of the explanation
+        :param attribute_map: attribute map to decode the attribute from a prefix
+        :param id: id of the element under explanation
+        :return: DataFrame containing the explanation
+        """
         impacts_list = []
         dict_impact = {'id': id}
         for wordpos, impact in explanation.as_map()[1]:
@@ -148,10 +122,9 @@ class LIME_ER_Wrapper(object):
 
     def compute_tokens(self, el):
         """
-        el: pd.DataFrame containing the 2 description to analyze
-
         Divide tokens of the descriptions for each column pair in inclusive and exclusive sets.
 
+        :param el: pd.DataFrame containing the 2 description to analyze
         """
         tokens = {col: np.array(self.splitter.split(str(el[col].values[0]))) for col in self.cols}
         tokens_intersection = {}
@@ -203,9 +176,15 @@ class LIME_ER_Wrapper(object):
         return ret
 
     def restructure_strings(self, perturbed_strings):
+        """
+
+        Decode :param perturbed_strings into DataFrame and
+        :return reconstructed pairs appending the landmark entity.
+
+        """
         df_list = []
         for single_row in perturbed_strings:
-            df_list.append(self.mapper_variable.map_word_to_attr_dict(single_row))
+            df_list.append(self.mapper_variable.decode_words_to_attr_dict(single_row))
         variable_df = pd.DataFrame.from_dict(df_list)
         if self.add_after_perturbation is not None:
             self.add_tokens(variable_df, variable_df.columns, self.add_after_perturbation, overlap=self.overlap)
@@ -216,13 +195,21 @@ class LIME_ER_Wrapper(object):
             fixed_df = None
         return pd.concat([variable_df, fixed_df], axis=1)
 
-    def explain(self, elements, conf='single', num_samples=500, **argv):
+
+    def explain(self, elements, conf='auto', num_samples=500, **argv):
         """
         User interface to generate an explanations with the specified configurations for the elements passed in input.
         """
-        assert conf in [ 'single', 'double', 'LIME'], 'conf must be in ' + repr([ 'single', 'double', 'LIME'])
-        for i in conf:
-            assert i in ['LIME', 'single', 'double'], f'available configurations are ' + str(['LIME', 'single', 'double'])
+        allowed_conf = ['auto', 'single', 'double', 'LIME']
+        assert conf in allowed_conf, 'conf must be in ' + repr(allowed_conf)
+
+        if 'auto' == conf:
+            match_elements = elements[elements.label==1]
+            no_match_elements = elements[elements.label == 0]
+            match_explanation = self.explain(match_elements,'single',num_samples, **argv)
+            no_match_explanation = self.explain(no_match_elements,'double',num_samples, **argv)
+            return pd.concat([match_explanation, no_match_explanation])
+
         impact_list = []
         if 'single' == conf:
             # right landmark
@@ -256,3 +243,47 @@ class LIME_ER_Wrapper(object):
                 impact_list.append(impacts)
         self.impacts = pd.concat(impact_list)
         return self.impacts
+
+
+class Mapper(object):
+    """
+    This class is useful to encode a row of a dataframe in a string in which a prefix
+    is added to each word to keep track of its attribute and its position.
+    """
+    def __init__(self, columns, split_expression):
+        self.columns = columns
+        self.attr_map = {chr(ord('A') + colidx): col for colidx, col in enumerate(self.columns)}
+        self.arange = np.arange(100)
+        self.split_expression = split_expression
+
+    def decode_words_to_attr_dict(self, text_to_restructure):
+        res = re.findall(r'(?P<attr>[A-Z]{1})(?P<pos>[0-9]{2})_(?P<word>[^' + self.split_expression + ']+)',
+                         text_to_restructure)
+        structured_row = {col: '' for col in self.columns}
+        for col_code, pos, word in res:
+            structured_row[self.attr_map[col_code]] += word + ' '
+        for col in self.columns:  # Remove last space
+            structured_row[col] = structured_row[col][:-1]
+        return structured_row
+
+    def decode_words_to_attr(self, text_to_restructure):
+        return pd.DataFrame([self.decode_words_to_attr_dict(text_to_restructure)])
+
+    def encode_attr(self, el):
+        return ' '.join(
+            [chr(ord('A') + colpos) + "{:02d}_".format(wordpos) + word for colpos, col in enumerate(self.columns) for
+             wordpos, word in enumerate(re.split(self.split_expression, str(el[col].values[0])))])
+
+    def encode_elements(self, elements):
+        word_dict = {}
+        res_list = []
+        for i in np.arange(elements.shape[0]):
+            el = elements.iloc[i]
+            word_dict.update(id=el.id)
+            for colpos, col in enumerate(self.columns):
+                word_dict.update(column=col)
+                for wordpos, word in enumerate(re.split(self.split_expression, str(el[col]))):
+                    word_dict.update(word=word, position=wordpos,
+                                     word_prefix=chr(ord('A') + colpos) + f"{wordpos:02d}_" + word)
+                    res_list.append(word_dict.copy())
+        return pd.DataFrame(res_list)
