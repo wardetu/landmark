@@ -35,6 +35,57 @@ class Landmark(object):
         self.explanations = {}
 
 
+    def explain(self, elements, conf='auto', num_samples=500, **argv):
+        """
+        User interface to generate an explanations with the specified configurations for the elements passed in input.
+        """
+        assert type(elements) == pd.DataFrame, f'elements must be of type {pd.DataFrame}'
+        allowed_conf = ['auto', 'single', 'double', 'LIME']
+        assert conf in allowed_conf, 'conf must be in ' + repr(allowed_conf)
+        if elements.shape[0] == 0:
+            return None
+
+        if 'auto' == conf:
+            match_elements = elements[elements.label==1]
+            no_match_elements = elements[elements.label == 0]
+            match_explanation = self.explain(match_elements,'single',num_samples, **argv)
+            no_match_explanation = self.explain(no_match_elements,'double',num_samples, **argv)
+            return pd.concat([match_explanation, no_match_explanation])
+
+        impact_list = []
+        if 'single' == conf:
+            # right landmark
+            for idx in range(elements.shape[0]):
+                impacts = self.explain_instance(elements.iloc[[idx]], variable_side='left', fixed_side='right', num_samples=num_samples, **argv)
+                impacts['conf'] = 'right_landmark'
+                impact_list.append(impacts)
+            # left landmark
+            for idx in range(elements.shape[0]):
+                impacts = self.explain_instance(elements.iloc[[idx]], variable_side='right', fixed_side='left', num_samples=num_samples, **argv)
+                impacts['conf'] = 'left_landmark'
+                impact_list.append(impacts)
+
+        if 'double' == conf:
+            for idx in range(elements.shape[0]):
+                impacts = self.explain_instance(elements.iloc[[idx]], variable_side='right', fixed_side='left',
+                                                add_before_perturbation='left', overlap=False, num_samples=num_samples, **argv)
+                impacts['conf'] = 'left_land_injected'
+                impact_list.append(impacts)
+
+            for idx in range(elements.shape[0]):
+                impacts = self.explain_instance(elements.iloc[[idx]], variable_side='left', fixed_side='right',
+                                                add_before_perturbation='right', overlap=False, num_samples=num_samples, **argv)
+                impacts['conf'] = 'right_land_injected'
+                impact_list.append(impacts)
+
+        if 'LIME' == conf:
+            for idx in range(elements.shape[0]):
+                impacts = self.explain_instance(elements.iloc[[idx]], variable_side='all', fixed_side=None, num_samples=num_samples, **argv)
+                impacts['conf'] = 'LIME'
+                impact_list.append(impacts)
+        self.impacts = pd.concat(impact_list)
+        return self.impacts
+
     def explain_instance(self, el, variable_side='left', fixed_side='right', add_before_perturbation=None,
                          add_after_perturbation=None, overlap=True, num_samples=500, **argv):
         """
@@ -196,53 +247,6 @@ class Landmark(object):
         return pd.concat([variable_df, fixed_df], axis=1)
 
 
-    def explain(self, elements, conf='auto', num_samples=500, **argv):
-        """
-        User interface to generate an explanations with the specified configurations for the elements passed in input.
-        """
-        allowed_conf = ['auto', 'single', 'double', 'LIME']
-        assert conf in allowed_conf, 'conf must be in ' + repr(allowed_conf)
-
-        if 'auto' == conf:
-            match_elements = elements[elements.label==1]
-            no_match_elements = elements[elements.label == 0]
-            match_explanation = self.explain(match_elements,'single',num_samples, **argv)
-            no_match_explanation = self.explain(no_match_elements,'double',num_samples, **argv)
-            return pd.concat([match_explanation, no_match_explanation])
-
-        impact_list = []
-        if 'single' == conf:
-            # right landmark
-            for idx in range(elements.shape[0]):
-                impacts = self.explain_instance(elements.iloc[[idx]], variable_side='left', fixed_side='right', num_samples=num_samples, **argv)
-                impacts['conf'] = 'right_landmark'
-                impact_list.append(impacts)
-            # left landmark
-            for idx in range(elements.shape[0]):
-                impacts = self.explain_instance(elements.iloc[[idx]], variable_side='right', fixed_side='left', num_samples=num_samples, **argv)
-                impacts['conf'] = 'left_landmark'
-                impact_list.append(impacts)
-
-        if 'double' == conf:
-            for idx in range(elements.shape[0]):
-                impacts = self.explain_instance(elements.iloc[[idx]], variable_side='right', fixed_side='left',
-                                                add_before_perturbation='left', overlap=False, num_samples=num_samples, **argv)
-                impacts['conf'] = 'left_land_injected'
-                impact_list.append(impacts)
-
-            for idx in range(elements.shape[0]):
-                impacts = self.explain_instance(elements.iloc[[idx]], variable_side='left', fixed_side='right',
-                                                add_before_perturbation='right', overlap=False, num_samples=num_samples, **argv)
-                impacts['conf'] = 'right_land_injected'
-                impact_list.append(impacts)
-
-        if 'LIME' == conf:
-            for idx in range(elements.shape[0]):
-                impacts = self.explain_instance(elements.iloc[[idx]], variable_side='all', fixed_side=None, num_samples=num_samples, **argv)
-                impacts['conf'] = 'LIME'
-                impact_list.append(impacts)
-        self.impacts = pd.concat(impact_list)
-        return self.impacts
 
 
 class Mapper(object):
