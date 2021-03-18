@@ -3,6 +3,7 @@ import re
 import numpy as np
 import pandas as pd
 from lime.lime_text import LimeTextExplainer
+from landmark.plot import PlotExplanation
 
 
 class Landmark(object):
@@ -252,6 +253,41 @@ class Landmark(object):
         else:
             fixed_df = None
         return pd.concat([variable_df, fixed_df], axis=1)
+
+    def double_explanation_conversion(self, explanation_df, item):
+        """
+        Compute and assign the original attribute of injected words.
+        :return: explanation with original attribute for injected words.
+        """
+        view = explanation_df[['column', 'position', 'word', 'impact']].reset_index(drop=True)
+        tokens_divided = self.compute_tokens(item)
+        exchanged_idx = [False] * len(view)
+        lengths = {col: len(words) for col, words in tokens_divided['tokens'].items()}
+        for col, words in tokens_divided['tokens_not_overlapped'].items():  # words injected in the opposite side
+            prefix, col_name = col.split('_')
+            prefix = 'left_' if prefix == 'right' else 'right_'
+            opposite_col = prefix + col_name
+            exchanged_idx = exchanged_idx | ((view.position >= lengths[opposite_col]) & (view.column == opposite_col))
+        exchanged = view[exchanged_idx]
+        view = view[~exchanged_idx]
+        # determine injected impacts
+        exchanged['side'] = exchanged['column'].apply(lambda x: x.split('_')[0])
+        col_names = exchanged['column'].apply(lambda x: x.split('_')[1])
+        exchanged['column'] = np.where(exchanged['side'] == 'left', 'right_', 'left_') + col_names
+        tmp = view.merge(exchanged, on=['word', 'column'], how='left', suffixes=('', '_injected'))
+        tmp = tmp.drop_duplicates(['column', 'word', 'position'], keep='first')
+        impacts_injected = tmp['impact_injected']
+        impacts_injected = impacts_injected.fillna(0)
+
+        view['score_right_landmark'] = np.where(view['column'].str.startswith('left'), view['impact'], impacts_injected)
+        view['score_left_landmark'] = np.where(view['column'].str.startswith('right'), view['impact'], impacts_injected)
+        view.drop('impact', 1, inplace=True)
+
+        return view
+
+    def plot(self, explanation, el):
+        exp_double = self.double_explanation_conversion(explanation, el)
+        PlotExplanation.plot(exp_double)
 
 
 class Mapper(object):
