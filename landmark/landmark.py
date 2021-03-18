@@ -1,8 +1,8 @@
 import re
+
 import numpy as np
 import pandas as pd
 from lime.lime_text import LimeTextExplainer
-
 
 
 class Landmark(object):
@@ -34,7 +34,6 @@ class Landmark(object):
         self.cols = self.left_cols + self.right_cols
         self.explanations = {}
 
-
     def explain(self, elements, conf='auto', num_samples=500, **argv):
         """
         User interface to generate an explanations with the specified configurations for the elements passed in input.
@@ -46,43 +45,51 @@ class Landmark(object):
             return None
 
         if 'auto' == conf:
-            match_elements = elements[elements.label==1]
+            match_elements = elements[elements.label == 1]
             no_match_elements = elements[elements.label == 0]
-            match_explanation = self.explain(match_elements,'single',num_samples, **argv)
-            no_match_explanation = self.explain(no_match_elements,'double',num_samples, **argv)
+            match_explanation = self.explain(match_elements, 'single', num_samples, **argv)
+            no_match_explanation = self.explain(no_match_elements, 'double', num_samples, **argv)
             return pd.concat([match_explanation, no_match_explanation])
 
         impact_list = []
-        if 'single' == conf:
-            # right landmark
-            for idx in range(elements.shape[0]):
-                impacts = self.explain_instance(elements.iloc[[idx]], variable_side='left', fixed_side='right', num_samples=num_samples, **argv)
-                impacts['conf'] = 'right_landmark'
-                impact_list.append(impacts)
-            # left landmark
-            for idx in range(elements.shape[0]):
-                impacts = self.explain_instance(elements.iloc[[idx]], variable_side='right', fixed_side='left', num_samples=num_samples, **argv)
-                impacts['conf'] = 'left_landmark'
-                impact_list.append(impacts)
-
-        if 'double' == conf:
-            for idx in range(elements.shape[0]):
-                impacts = self.explain_instance(elements.iloc[[idx]], variable_side='right', fixed_side='left',
-                                                add_before_perturbation='left', overlap=False, num_samples=num_samples, **argv)
-                impacts['conf'] = 'left_land_injected'
-                impact_list.append(impacts)
-
-            for idx in range(elements.shape[0]):
-                impacts = self.explain_instance(elements.iloc[[idx]], variable_side='left', fixed_side='right',
-                                                add_before_perturbation='right', overlap=False, num_samples=num_samples, **argv)
-                impacts['conf'] = 'right_land_injected'
-                impact_list.append(impacts)
-
         if 'LIME' == conf:
             for idx in range(elements.shape[0]):
-                impacts = self.explain_instance(elements.iloc[[idx]], variable_side='all', fixed_side=None, num_samples=num_samples, **argv)
+                impacts = self.explain_instance(elements.iloc[[idx]], variable_side='all', fixed_side=None,
+                                                num_samples=num_samples, **argv)
                 impacts['conf'] = 'LIME'
                 impact_list.append(impacts)
+            self.impacts = pd.concat(impact_list)
+            return self.impacts
+
+        landmark = 'right'
+        variable = 'left'
+        overlap = False
+        if 'single' == conf:
+            add_before = None
+        elif 'double' == conf:
+            add_before = landmark
+
+        # right landmark
+        for idx in range(elements.shape[0]):
+            impacts = self.explain_instance(elements.iloc[[idx]], variable_side=variable, fixed_side=landmark,
+                                            add_before_perturbation=add_before, num_samples=num_samples,
+                                            overlap=overlap, **argv)
+            impacts['conf'] = f'{landmark}_landmark' + ('_injection' if add_before is not None else '')
+            impact_list.append(impacts)
+
+        # switch sides
+        landmark, variable = variable, landmark
+        if add_before is not None:
+            add_before = landmark
+
+        # left landmark
+        for idx in range(elements.shape[0]):
+            impacts = self.explain_instance(elements.iloc[[idx]], variable_side=variable, fixed_side=landmark,
+                                            add_before_perturbation=add_before, num_samples=num_samples,
+                                            overlap=overlap, **argv)
+            impacts['conf'] = f'{landmark}_landmark' + ('_injection' if add_before is not None else '')
+            impact_list.append(impacts)
+
         self.impacts = pd.concat(impact_list)
         return self.impacts
 
@@ -102,7 +109,8 @@ class Landmark(object):
                                              add_after_perturbation, overlap)
 
         words = self.splitter.split(variable_data)
-        explanation = self.explainer.explain_instance(variable_data, self.restucture_and_predict, num_features=len(words), num_samples=num_samples,
+        explanation = self.explainer.explain_instance(variable_data, self.restucture_and_predict,
+                                                      num_features=len(words), num_samples=num_samples,
                                                       **argv)
         self.variable_data = variable_data  # to test the addition before perturbation
 
@@ -170,7 +178,6 @@ class Landmark(object):
             impacts_list.append(dict_impact.copy())
         return pd.DataFrame(impacts_list).reset_index()
 
-
     def compute_tokens(self, el):
         """
         Divide tokens of the descriptions for each column pair in inclusive and exclusive sets.
@@ -196,7 +203,7 @@ class Landmark(object):
         and inject them into el in columns specified in dst_columns.
 
         """
-        if overlap == False:
+        if not overlap:
             tokens_to_add = self.tokens_not_overlapped
         else:
             tokens_to_add = self.tokens
@@ -247,13 +254,12 @@ class Landmark(object):
         return pd.concat([variable_df, fixed_df], axis=1)
 
 
-
-
 class Mapper(object):
     """
     This class is useful to encode a row of a dataframe in a string in which a prefix
     is added to each word to keep track of its attribute and its position.
     """
+
     def __init__(self, columns, split_expression):
         self.columns = columns
         self.attr_map = {chr(ord('A') + colidx): col for colidx, col in enumerate(self.columns)}

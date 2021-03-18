@@ -10,7 +10,7 @@ from IPython.utils import io
 nltk.download('punkt')
 
 
-class DM_predict(object):
+class DMWrapper(object):
     def __init__(self, dm_trained_model, exclude_attrs, one_by_one=False):
         self.dm = dm_trained_model
         self.exclude_attrs = exclude_attrs
@@ -46,4 +46,3 @@ class DM_predict(object):
                 os.remove(file_path)
                 res = self.predictions['match_score'].values
         return res
-
