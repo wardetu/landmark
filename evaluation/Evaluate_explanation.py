@@ -6,7 +6,7 @@ from landmark.landmark import Landmark
 
 class Evaluate_explanation(Landmark):
 
-    def __init__(self, impacts_df, dataset,  percentage=.25, num_round=10, **argv):
+    def __init__(self, impacts_df, dataset, percentage=.25, num_round=10, **argv):
         self.impacts_df = impacts_df
         self.percentage = percentage
         self.num_round = num_round
@@ -81,8 +81,10 @@ class Evaluate_explanation(Landmark):
                                   'all_opposite': [[pos for pos, impact in enumerate(self.impacts) if
                                                     (impact > 0) == (self.start_pred > .5)]]}
 
-        combinations_to_remove['change_class_D.10'] = [self.get_tokens_to_change_class(self.start_pred, self.impacts, delta=.1)]
-        combinations_to_remove['change_class_D.15'] = [self.get_tokens_to_change_class(self.start_pred, self.impacts, delta=.15)]
+        combinations_to_remove['change_class_D.10'] = [
+            self.get_tokens_to_change_class(self.start_pred, self.impacts, delta=.1)]
+        combinations_to_remove['change_class_D.15'] = [
+            self.get_tokens_to_change_class(self.start_pred, self.impacts, delta=.15)]
 
         description_to_evaluate, comb_name_sequence, tokens_to_remove_sequence = self.generate_descriptions(
             combinations_to_remove)
@@ -139,7 +141,7 @@ class Evaluate_explanation(Landmark):
         for id in ids:
             impact_df = impacts_all[impacts_all.id == id][['word_prefix', 'impact']]
             start_el = self.dataset[self.dataset.id == id]
-            if utility == True:
+            if utility:
                 res += self.evaluate_utility(start_el, impact_df, variable_side, fixed_side, add_before_perturbation,
                                              add_after_perturbation, overlap)
             else:
@@ -152,7 +154,7 @@ class Evaluate_explanation(Landmark):
             for id in ids:
                 impact_df = impacts_all[impacts_all.id == id][['word_prefix', 'impact']]
                 start_el = self.dataset[self.dataset.id == id]
-                if utility == True:
+                if utility:
                     res += self.evaluate_utility(start_el, impact_df, variable_side, fixed_side,
                                                  add_before_perturbation,
                                                  add_after_perturbation, overlap)

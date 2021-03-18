@@ -17,7 +17,7 @@ class Test(TestCase):
         test_df = pd.read_csv(os.path.join(dataset_path, 'test_merged.csv'))
         test_df['right_price'] = test_df['right_price'].astype(str).str.replace(',', '').astype(float)
         test_df['left_price'] = test_df['left_price'].astype(str).str.replace(',', '').astype(float)
-        #test_df.drop(columns=['left_price', 'right_price'], inplace=True)
+        # test_df.drop(columns=['left_price', 'right_price'], inplace=True)
         cls.test_df = test_df
         cls.explanations_path = os.path.join(dataset_path, 'files', 'magellan_explanations_LOGREG')
         cls.num_samples = 100
@@ -35,12 +35,11 @@ class Test(TestCase):
         el = pd.DataFrame([[1, lstring1, lstring2, rstring1, rstring2]],
                           columns=['id', 'left_A', 'left_B', 'right_A', 'right_B'])
 
-        explainer = Landmark(self.random_pred, el, exclude_attrs=[], lprefix='left_',
-                                    rprefix='right_', split_expression=r' ')
+        explainer = Landmark(self.random_pred, el, exclude_attrs=[], lprefix='left_', rprefix='right_',
+                             split_expression=r' ')
         impacts_match = explainer.explain(el, num_samples=self.num_samples)
 
-        ev = Evaluate_explanation(impacts_match, el, predict_method=self.random_pred, 
-                                  percentage=.25, num_round=20)
+        ev = Evaluate_explanation(impacts_match, el, predict_method=self.random_pred, percentage=.25, num_round=20)
         results = ev.evaluate_set([1], 'all', variable_side='all')
 
         encoded = 'A00_l1 A01_l2 B00_m1 B01_m2 C00_r1 D00_s1 D01_s2 D02_s3'
@@ -130,9 +129,9 @@ class Test(TestCase):
         file_path = os.path.join(self.explanations_path, 'explanations_of_100_NOmatch.csv')
         explanations_df = pd.read_csv(file_path)
         exclude_attrs = ['id', 'left_id', 'right_id', 'label']
-        ev = Evaluate_explanation(impacts_df=explanations_df, dataset=self.test_df, predict_method=self.random_pred, exclude_attrs=exclude_attrs, percentage=.25,
+        ev = Evaluate_explanation(impacts_df=explanations_df, dataset=self.test_df, predict_method=self.random_pred,
+                                  exclude_attrs=exclude_attrs, percentage=.25,
                                   num_round=100)
         explained_idx = explanations_df.id.unique()[:2]
         res_df = ev.evaluate_set(explained_idx, 'all', variable_side='all', fixed_side=None)
         assert True
-
