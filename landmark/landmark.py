@@ -3,7 +3,7 @@ import re
 import numpy as np
 import pandas as pd
 from lime.lime_text import LimeTextExplainer
-from landmark.plot import PlotExplanation
+from .plot import PlotExplanation
 
 
 class Landmark(object):

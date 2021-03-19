@@ -1,1 +1,0 @@
-from .MagellanWrapper import MagellanWrapper
