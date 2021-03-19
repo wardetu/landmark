@@ -56,6 +56,8 @@ Get started with Landmark Explanation!
 
 [Here](https://github.com/softlab-unimore/landmark/blob/master/quick_start_magellan.ipynb) you can find a working notebook in which we explain a [Magellan](https://github.com/anhaidgroup/py_entitymatching) model.
 
+[Here](https://github.com/softlab-unimore/landmark/blob/master/quick_start_DeepMatcher.ipynb) you can find a working notebook in which we explain a [DeepMatcher](https://github.com/anhaidgroup/deepmatcher) model.
+
 ## License
 [MIT License](LICENSE)
 
