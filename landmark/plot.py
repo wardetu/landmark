@@ -75,10 +75,10 @@ class PlotExplanation(object):
         fig.tight_layout()
 
     @staticmethod
-    def plot(exp):
+    def plot(exp, figsize=(16, 6)):
         data = exp.copy()
         # initialize a plot
-        fig, axes = plt.subplots(nrows=1, ncols=4, figsize=(16, 6))  # create figure
+        fig, axes = plt.subplots(nrows=1, ncols=4, figsize=figsize)  # create figure
         target_col = 'score_right_landmark'
         # sort individuals by amount of change, from largest to smallest
         data = data.sort_values(by=target_col, ascending=True).reset_index(drop=True)
