@@ -285,9 +285,9 @@ class Landmark(object):
 
         return view
 
-    def plot(self, explanation, el):
+    def plot(self, explanation, el, figsize=(16,6)):
         exp_double = self.double_explanation_conversion(explanation, el)
-        PlotExplanation.plot(exp_double)
+        PlotExplanation.plot(exp_double, figsize)
 
 
 class Mapper(object):
