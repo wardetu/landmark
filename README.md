@@ -1,5 +1,5 @@
-# Landmark 
-*Landmark* is an Entity Matching specific explanation framework based on LIME.
+# Landmark Explanation
+*Landmark Explanation* is an Entity Matching specific explanation framework based on LIME.
 
 
 The state of the art approaches for performing Entity Matching (EM) rely on machine & deep learning models for inferring pairs of matching / non-matching entities.
