@@ -1,5 +1,5 @@
-# Landmark 
-*Landmark* is an Entity Matching specific explanation framework based on LIME.
+# Landmark Explanation
+*Landmark Explanation* is an Entity Matching specific explanation framework based on LIME.
 
 
 The state of the art approaches for performing Entity Matching (EM) rely on machine & deep learning models for inferring pairs of matching / non-matching entities.
@@ -57,6 +57,24 @@ Get started with Landmark Explanation!
 [Here](https://github.com/softlab-unimore/landmark/blob/master/quick_start_magellan.ipynb) you can find a working notebook in which we explain a [Magellan](https://github.com/anhaidgroup/py_entitymatching) model.
 
 [Here](https://github.com/softlab-unimore/landmark/blob/master/quick_start_DeepMatcher.ipynb) you can find a working notebook in which we explain a [DeepMatcher](https://github.com/anhaidgroup/deepmatcher) model.
+
+## Reference
+
+For a detailed description of the work please read [our paper](https://openproceedings.org/2021/conf/edbt/p259.pdf). Please cite the paper if you use the code from this repository in your work.
+
+```
+@inproceedings{DBLP:conf/edbt/BaraldiBP021,
+  author    = {Andrea Baraldi and
+               Francesco Del Buono and
+               Matteo Paganelli and
+               Francesco Guerra},
+  title     = {Using Landmarks for Explaining Entity Matching Models},
+  booktitle = {{EDBT}},
+  pages     = {451--456},
+  publisher = {OpenProceedings.org},
+  year      = {2021}
+}
+```
 
 ## License
 [MIT License](LICENSE)
