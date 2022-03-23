@@ -1,5 +1,5 @@
 import re
-
+from tqdm import tqdm
 import numpy as np
 import pandas as pd
 from lime.lime_text import LimeTextExplainer
@@ -54,7 +54,7 @@ class Landmark(object):
 
         impact_list = []
         if 'LIME' == conf:
-            for idx in range(elements.shape[0]):
+            for idx in tqdm(range(elements.shape[0])):
                 impacts = self.explain_instance(elements.iloc[[idx]], variable_side='all', fixed_side=None,
                                                 num_samples=num_samples, **argv)
                 impacts['conf'] = 'LIME'
@@ -71,7 +71,7 @@ class Landmark(object):
             add_before = landmark
 
         # right landmark
-        for idx in range(elements.shape[0]):
+        for idx in tqdm(range(elements.shape[0])):
             impacts = self.explain_instance(elements.iloc[[idx]], variable_side=variable, fixed_side=landmark,
                                             add_before_perturbation=add_before, num_samples=num_samples,
                                             overlap=overlap, **argv)
@@ -84,7 +84,7 @@ class Landmark(object):
             add_before = landmark
 
         # left landmark
-        for idx in range(elements.shape[0]):
+        for idx in tqdm(range(elements.shape[0])):
             impacts = self.explain_instance(elements.iloc[[idx]], variable_side=variable, fixed_side=landmark,
                                             add_before_perturbation=add_before, num_samples=num_samples,
                                             overlap=overlap, **argv)
@@ -287,7 +287,7 @@ class Landmark(object):
 
     def plot(self, explanation, el, figsize=(16,6)):
         exp_double = self.double_explanation_conversion(explanation, el)
-        PlotExplanation.plot(exp_double, figsize)
+        return PlotExplanation.plot(exp_double, figsize)
 
 
 class Mapper(object):
