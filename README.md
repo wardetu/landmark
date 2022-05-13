@@ -1,3 +1,6 @@
+# Disclaimer:
+This fork is to contain a `setup.py` file (which means creation of the file itself and some relocation). This is for `poetry` to be able to pick the module up via Git. No other changes are made.
+
 # Landmark Explanation
 *Landmark Explanation* is an Entity Matching specific explanation framework based on LIME.
 
